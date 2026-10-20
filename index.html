@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>คำนวณเบี้ย Pay Life Plus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single narrow column, form card on top, a receipt-like result slip below */
+:root{
+  --bg:#f6f2f1; --surface:#ffffff; --ink:#2a1d20; --muted:#76666a; --line:#e7dcdc;
+  --accent:#b3123a; --accent-soft:#fbe7ec; --on-accent:#ffffff; --warn:#a3510b;
+  --display:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1a1214; --surface:#251a1d; --ink:#f3e9eb; --muted:#b29fa4; --line:#3b2a2f;
+  --accent:#ff5c80; --accent-soft:#3d1a24; --on-accent:#1a1214; --warn:#f0a35e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1214; --surface:#251a1d; --ink:#f3e9eb; --muted:#b29fa4; --line:#3b2a2f;
+  --accent:#ff5c80; --accent-soft:#3d1a24; --on-accent:#1a1214; --warn:#f0a35e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:480px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:16px}
+header h1{font-family:var(--display);font-size:1.6rem;line-height:1.2;margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.eyebrow{font-family:var(--display);font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:18px}
+.field{display:grid;gap:8px}
+.label{font-weight:600;font-size:.92rem}
+.hint{font-size:.8rem;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(var(--n,2),1fr);gap:6px;background:var(--bg);padding:4px;border-radius:10px}
+.seg button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--ink);padding:10px 4px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.seg button:focus-visible,.chip:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.agerow{display:flex;gap:8px;align-items:center}
+.agerow input{flex:1;min-width:0}
+input[type=text],input[type=number]{font:inherit;font-size:1.15rem;font-family:var(--mono);font-variant-numeric:tabular-nums;width:100%;
+  padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.step{font:inherit;font-size:1.2rem;width:46px;height:46px;flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 11px;border-radius:99px;cursor:pointer}
+.err{color:var(--warn);font-size:.85rem;font-weight:500}
+.slip{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.slip-top{background:var(--accent);color:var(--on-accent);padding:18px}
+.slip-top .k{font-size:.85rem;opacity:.9}
+.big{font-family:var(--display);font-weight:700;font-size:2.4rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.big small{font-size:1rem;font-weight:600}
+.slip-body{padding:6px 18px 16px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:.93rem}
+.row:last-child{border-bottom:0}
+.row span:first-child{color:var(--muted)}
+.row span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.row.strong span:last-child{color:var(--accent);font-weight:500}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{font:inherit;font-weight:600;text-align:center;text-decoration:none;padding:12px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.line{background:#06c755;border-color:#06c755;color:#fff}
+.sumline{font-family:var(--display);font-weight:600;font-size:1.1rem;margin-top:2px}
+.tbl-wrap{max-height:60vh;overflow:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;background:var(--surface);font-size:.8rem;color:var(--muted);font-weight:600;text-align:right;padding:10px 18px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 18px;border-bottom:1px dashed var(--line);font-family:var(--mono);text-align:right;font-size:.95rem}
+td:first-child{font-family:var(--body);color:var(--muted)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--accent-soft)}
+tbody tr[aria-selected="true"] td{background:var(--accent-soft);color:var(--accent);font-weight:600}
+details.slip summary{cursor:pointer;padding:14px 18px;font-weight:600;color:var(--accent)}
+td.on{color:var(--accent);font-weight:600}
+.sel{font-size:.9rem;text-align:center;color:var(--muted)}
+.note{font-size:.78rem;color:var(--muted);line-height:1.6}
+.note p{margin:0 0 6px}
+#copied{font-size:.85rem;color:var(--accent);min-height:1.2em;text-align:center}
+@media (prefers-reduced-motion:no-preference){.big{transition:opacity .15s}}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ตลอดชีพ · คุ้มครองถึงอายุ 99 ปี</div>
+    <h1>คำนวณเบี้ย AIA Pay Life Plus (Non Par)</h1>
+    <p>เลือกเพศ อายุ แบบชำระ และทุนประกัน เพื่อดูเบี้ยรายปี</p>
+  </header>
+
+  <section class="card" aria-label="ข้อมูลผู้เอาประกัน">
+    <div class="field">
+      <span class="label">เพศ</span>
+      <div class="seg" style="--n:2" id="sex">
+        <button type="button" data-v="M" aria-pressed="true">ชาย</button>
+        <button type="button" data-v="F" aria-pressed="false">หญิง</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" for="age">อายุ (ปี)</label>
+      <div class="agerow">
+        <button type="button" class="step" id="ageMinus" aria-label="ลดอายุ">−</button>
+        <input id="age" type="number" inputmode="numeric" min="0" max="75" value="35">
+        <button type="button" class="step" id="agePlus" aria-label="เพิ่มอายุ">+</button>
+      </div>
+      <span class="hint">0 = อายุ 15 วัน ถึง 1 ปี · รับประกัน 15 วัน – 75 ปี</span>
+    </div>
+    <div class="field">
+      <span class="label">แบบชำระเบี้ย</span>
+      <div class="seg" style="--n:3" id="plan">
+        <button type="button" data-v="10" aria-pressed="false">10 ปี</button>
+        <button type="button" data-v="15" aria-pressed="false">15 ปี</button>
+        <button type="button" data-v="20" aria-pressed="true">20 ปี</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" for="sa">จำนวนเงินเอาประกันภัย (บาท)</label>
+      <input id="sa" type="text" inputmode="numeric" value="1,000,000" autocomplete="off">
+      <div class="chips" id="saChips">
+        <button type="button" class="chip" data-v="300000">3 แสน</button>
+        <button type="button" class="chip" data-v="500000">5 แสน</button>
+        <button type="button" class="chip" data-v="1000000">1 ล้าน</button>
+        <button type="button" class="chip" data-v="2000000">2 ล้าน</button>
+        <button type="button" class="chip" data-v="5000000">5 ล้าน</button>
+      </div>
+      <span class="hint" id="saHint"></span>
+      <span class="err" id="err" hidden></span>
+    </div>
+  </section>
+
+  <section class="slip" aria-live="polite">
+    <div class="slip-top">
+      <div class="k">เบี้ยประกันภัยรายปี</div>
+      <div class="big"><span id="premium">–</span> <small>บาท</small></div>
+      <div class="k" id="summary"></div>
+    </div>
+    <div class="slip-body">
+      <div class="row"><span>อัตราเบี้ยมาตรฐาน / ทุน 1,000</span><span id="rRate">–</span></div>
+      <div class="row"><span>ส่วนลดเบี้ย / ทุน 1,000</span><span id="rDisc">–</span></div>
+      <div class="row strong"><span>อัตราเบี้ยสุทธิ / ทุน 1,000</span><span id="rNet">–</span></div>
+      <div class="row"><span>ชำระเบี้ยถึงอายุ</span><span id="rPayTo">–</span></div>
+      <div class="row"><span>ความคุ้มครองชีวิต</span><span>ถึงอายุ 99 ปี</span></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <a class="btn line" id="lineBtn" href="#" target="_blank" rel="noopener">ส่งทาง LINE</a>
+    <button type="button" class="btn" id="copyBtn">คัดลอกผลลัพธ์</button>
+  </div>
+  <div id="copied"></div>
+
+  <details class="slip" id="allAges">
+    <summary>ดูเบี้ยทุกอายุ (แตะแถวเพื่อเลือกอายุ)</summary>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>อายุ</th><th>ชาย</th><th>หญิง</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <div class="note">
+    <p>ผลประโยชน์: เสียชีวิตหรือมีชีวิตอยู่ครบอายุ 99 ปี รับจำนวนที่มากกว่าระหว่าง 100% ของทุนประกัน, เงินค่าเวนคืน หรือเบี้ยหลักที่ชำระมาแล้วทั้งหมด พร้อมผลประโยชน์ WPCI (ถึงอายุ 80) และ TI (ถึงอายุ 99) โดยไม่ต้องจ่ายเพิ่ม ขึ้นอยู่กับการพิจารณารับประกัน</p>
+    <p>ส่วนลดเบี้ย: ทุน 500,000–699,999 ลด 1.00 บาท · ตั้งแต่ 700,000 ลด 1.50 บาท ต่อทุน 1,000</p>
+    <p>ตัวเลขนี้เป็นการประมาณจากอัตราเบี้ยมาตรฐาน (เอกสาร SU0215433 – 01/01/2023) ไม่รวมสัญญาเพิ่มเติม และไม่ใช่ใบเสนอราคาจากบริษัท เบี้ยจริงขึ้นอยู่กับผลพิจารณารับประกันภัย</p>
+  </div>
+</div>
+
+<script>
+// Standard annual rates per 1,000 SA, index = age (0 = 15 days)
+const R = {
+ "10M":[24.35,24.56,24.96,25.37,25.80,26.25,26.72,27.20,27.72,28.26,28.83,29.43,30.03,30.66,31.28,31.92,32.57,33.23,33.89,34.57,35.27,35.97,36.71,37.47,38.26,39.07,39.93,40.82,41.76,42.72,43.74,44.79,45.89,47.04,48.21,49.45,50.72,52.05,
+        53.43,54.86,56.33,57.87,59.47,61.13,62.84,64.64,66.48,68.23,69.86,71.55,73.29,75.09,76.95,78.88,80.89,82.98,85.17,87.45,89.85,92.36,95.00,97.79,100.74,103.86,107.17,110.71,114.51,118.58,122.97,127.72,132.85,138.39,144.37,150.82,157.76,165.20],
+ "10F":[19.37,19.60,19.97,20.33,20.71,21.11,21.52,21.93,22.39,22.84,23.31,23.80,24.31,24.84,25.38,25.95,26.53,27.13,27.75,28.40,29.07,29.78,30.50,31.25,32.03,32.85,33.69,34.57,35.50,36.45,37.44,38.49,39.57,40.70,41.88,43.10,44.37,45.71,
+        47.09,48.53,50.03,51.28,52.58,53.93,55.33,56.78,58.30,59.86,61.49,63.15,64.74,66.38,68.09,69.86,71.70,73.61,75.59,77.65,79.80,82.04,84.39,86.86,89.46,92.22,95.15,98.28,101.64,105.23,109.10,113.26,117.73,122.53,127.68,133.20,139.12,145.44],
+ "15M":[17.53,17.69,17.96,18.26,18.56,18.89,19.22,19.57,19.94,20.33,20.74,21.16,21.60,22.04,22.50,22.96,23.42,23.88,24.35,24.84,25.33,25.84,26.36,26.91,27.47,28.05,28.67,29.30,29.98,30.67,31.39,32.16,32.95,33.77,34.63,35.52,36.44,37.41,
+        38.41,39.45,40.54,41.66,42.83,44.06,45.32,46.49,47.63,48.82,50.05,51.34,52.67,54.07,55.52,57.05,58.66,60.35,62.15,64.05,66.08,68.25,70.57,73.06,75.74,78.64,81.78,85.19,88.90,92.95,97.36,102.18,107.44,113.17,119.40,126.16,133.48,141.39],
+ "15F":[15.42,15.53,15.74,15.95,16.17,16.41,16.65,16.91,17.17,17.44,17.72,18.02,18.33,18.65,18.98,19.32,19.67,20.03,20.41,20.80,21.21,21.64,22.08,22.54,23.01,23.51,24.02,24.56,25.12,25.71,26.32,26.96,27.62,28.31,29.03,29.79,30.58,31.41,
+        32.26,33.15,34.09,35.06,36.07,37.11,38.21,39.35,40.54,41.78,43.08,44.43,45.85,47.27,48.54,49.88,51.28,52.74,54.29,55.91,57.63,59.46,61.41,63.50,65.75,68.17,70.80,73.66,76.78,80.17,83.87,87.91,92.30,97.09,102.29,107.94,114.07,120.72],
+ "20M":[14.80,14.86,15.06,15.25,15.46,15.69,15.93,16.18,16.45,16.73,17.03,17.35,17.67,18.00,18.33,18.66,19.00,19.34,19.69,20.03,20.39,20.76,21.15,21.54,21.96,22.40,22.85,23.34,23.85,24.38,24.94,25.53,26.16,26.81,27.48,28.19,28.93,29.71,
+        30.52,31.37,32.25,33.18,34.15,35.17,36.24,37.35,38.54,39.76,41.06,42.20,43.40,44.66,46.00,47.41,48.92,50.53,52.26,54.12,56.12,58.29,60.64,63.20,65.97,68.99,72.29,75.89,79.81,84.11,87.15,92.04,97.53,101.92,108.33,115.30,122.85,131.01],
+ "20F":[13.31,13.31,13.35,13.43,13.55,13.69,13.85,14.04,14.23,14.44,14.69,14.93,15.18,15.45,15.73,15.96,16.21,16.46,16.72,16.99,17.28,17.57,17.90,18.22,18.56,18.92,19.30,19.70,20.11,20.56,21.01,21.49,21.99,22.53,23.08,23.66,24.28,24.92,
+        25.59,26.30,27.03,27.79,28.61,29.45,30.33,31.26,32.24,33.27,34.35,35.48,36.68,37.96,39.30,40.73,42.10,43.44,44.86,46.39,48.03,49.79,51.70,53.77,56.02,58.48,61.17,64.11,67.34,70.88,74.76,77.83,82.43,85.67,91.05,96.92,103.31,110.27]
+};
+const MAX_SA = 9999999;
+const state = {sex:"M", plan:"20"};
+const $ = id => document.getElementById(id);
+const fmt = (n,d=0) => n.toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+const money = n => fmt(n, Math.round(n*100)%100 ? 2 : 0);
+const minSA = () => state.plan==="20" ? 150000 : 300000;
+const discount = sa => sa>=700000 ? 1.5 : sa>=500000 ? 1 : 0;
+const parseSA = () => parseInt(($("sa").value||"").replace(/[^\d]/g,""),10) || 0;
+const ageLabel = a => a===0 ? "15 วัน" : a+" ปี";
+const prem = (sex,age,sa) => Math.round((R[state.plan+sex][age]-discount(sa))*sa/10)/100;
+
+function seg(id,key){
+  $(id).addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    state[key]=b.dataset.v;
+    $(id).querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    calc();
+  });
+}
+seg("sex","sex"); seg("plan","plan");
+$("ageMinus").onclick=()=>{$("age").value=Math.max(0,(+$("age").value||0)-1);calc()};
+$("agePlus").onclick=()=>{$("age").value=Math.min(75,(+$("age").value||0)+1);calc()};
+$("age").addEventListener("input",calc);
+$("sa").addEventListener("input",()=>{const n=parseSA(); $("sa").value=n?fmt(n):""; calc();});
+$("saChips").addEventListener("click",e=>{const b=e.target.closest(".chip"); if(!b) return; $("sa").value=fmt(+b.dataset.v); calc();});
+$("tbody").addEventListener("click",e=>{
+  const tr=e.target.closest("tr"); if(!tr) return;
+  $("age").value=tr.dataset.age;
+  const td=e.target.closest("td");
+  if(td&&td.cellIndex>0){ state.sex=td.cellIndex===1?"M":"F"; $("sex").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===state.sex)); }
+  calc(); window.scrollTo({top:0,behavior:"smooth"});
+});
+
+let lastText="";
+function table(sa,ok,age){
+  let rows="";
+  for(let a=0;a<=75;a++){
+    const sel=a===age;
+    rows+=`<tr data-age="${a}" aria-selected="${sel}"><td>${ageLabel(a)}</td><td class="${sel&&state.sex==="M"?"on":""}">${ok?money(prem("M",a,sa)):"–"}</td><td class="${sel&&state.sex==="F"?"on":""}">${ok?money(prem("F",a,sa)):"–"}</td></tr>`;
+  }
+  $("tbody").innerHTML=rows;
+}
+function setEmpty(msg){
+  $("err").hidden=false; $("err").textContent=msg;
+  ["premium","rRate","rDisc","rNet","rPayTo"].forEach(i=>$(i).textContent="–");
+  $("summary").textContent=""; lastText=""; $("lineBtn").href="#";
+}
+function calc(){
+  const ageRaw=$("age").value, age=Math.floor(+ageRaw), sa=parseSA();
+  $("saHint").textContent=`แบบชำระ ${state.plan} ปี: ทุน ${fmt(minSA())} – ${fmt(MAX_SA)} บาท`;
+  const saOk = sa>=minSA() && sa<=MAX_SA;
+  const ageOk = ageRaw!=="" && !isNaN(age) && age>=0 && age<=75;
+  table(sa, saOk, ageOk?age:-1);
+  if(!ageOk) return setEmpty("ใส่อายุระหว่าง 0 ถึง 75 ปี");
+  if(sa<minSA()) return setEmpty(`ทุนประกันขั้นต่ำของแบบชำระ ${state.plan} ปี คือ ${fmt(minSA())} บาท`);
+  if(sa>MAX_SA) return setEmpty(`ทุนประกันสูงสุด ${fmt(MAX_SA)} บาท`);
+  $("err").hidden=true;
+  const rate=R[state.plan+state.sex][age], d=discount(sa), p=prem(state.sex,age,sa);
+  const sexLabel= state.sex==="M"?"ชาย":"หญิง";
+  $("premium").textContent=money(p);
+  $("summary").textContent=`${sexLabel} อายุ ${ageLabel(age)} · ชำระ ${state.plan} ปี · ทุน ${fmt(sa)} บาท`;
+  $("rRate").textContent=rate.toFixed(2);
+  $("rDisc").textContent=d? "−"+d.toFixed(2) : "ไม่มี";
+  $("rNet").textContent=(rate-d).toFixed(2);
+  $("rPayTo").textContent=`${age+(+state.plan)-1} ปี (${state.plan} งวด)`;
+  lastText=`AIA Pay Life Plus (Non Par)\n${sexLabel} อายุ ${ageLabel(age)}\nแบบชำระเบี้ย ${state.plan} ปี คุ้มครองถึงอายุ 99 ปี\nทุนประกัน ${fmt(sa)} บาท\nเบี้ยประกันภัยรายปี ${money(p)} บาท\n(ประมาณการจากอัตราเบี้ยมาตรฐาน ไม่รวมสัญญาเพิ่มเติม)`;
+  $("lineBtn").href="https://line.me/R/share?text="+encodeURIComponent(lastText);
+}
+$("lineBtn").addEventListener("click",e=>{ if(!lastText) e.preventDefault(); });
+$("copyBtn").onclick=()=>{
+  if(!lastText) return;
+  const done=()=>{$("copied").textContent="คัดลอกแล้ว"; setTimeout(()=>$("copied").textContent="",2000)};
+  function fallback(){
+    const t=document.createElement("textarea"); t.value=lastText; document.body.appendChild(t); t.select();
+    try{document.execCommand("copy");done()}catch(_){$("copied").textContent="เลือกข้อความแล้วคัดลอกเองได้"} t.remove();
+  }
+  try{ navigator.clipboard.writeText(lastText).then(done,fallback); }catch(_){fallback()}
+};
+calc();
+</script>
+
+</body>
+</html>
