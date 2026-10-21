@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>คำนวณเบี้ย 20Pay Life</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: single column calculator card; inputs on top, result slip below, formula breakdown last */
+:root{
+  --bg:#f6f2f3; --surface:#ffffff; --fg:#2a1a20; --muted:#7a6670; --line:#e6dbe0;
+  --accent:#b8123f; --accent-soft:#fbe6ec; --on-accent:#ffffff;
+  --display:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#171114; --surface:#221a1e; --fg:#f3e9ed; --muted:#a8939d; --line:#3a2d33;
+  --accent:#ff5c84; --accent-soft:#3a1d27; --on-accent:#1a0a10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171114; --surface:#221a1e; --fg:#f3e9ed; --muted:#a8939d; --line:#3a2d33;
+  --accent:#ff5c84; --accent-soft:#3a1d27; --on-accent:#1a0a10; color-scheme:dark}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:460px;margin:0 auto;padding-block:20px 32px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+header .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-family:var(--display);font-size:26px;line-height:1.25;margin:2px 0 4px;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:18px}
+label,.lbl{font-weight:600;font-size:14px;display:block;margin-bottom:8px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);padding:4px;border-radius:10px}
+.seg button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:10px;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+.row{display:flex;align-items:center;gap:8px}
+.step{font:inherit;font-size:20px;width:44px;height:44px;flex:none;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+input[type=text],input[type=number]{font:inherit;font-size:18px;font-variant-numeric:tabular-nums;width:100%;min-width:0;height:44px;padding:0 12px;
+  border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);text-align:center}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.err{color:var(--accent);font-size:13px;margin-top:6px}
+.result{background:var(--accent);color:var(--on-accent);border-radius:14px;padding:20px 18px;display:flex;flex-direction:column;gap:4px}
+.result .k{font-size:13px;opacity:.85}
+.result .v{font-family:var(--display);font-size:40px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.result .v small{font-size:16px;font-weight:500}
+.result .sub{font-size:14px;opacity:.9}
+dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-size:14px}
+dt{color:var(--muted)} dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+dd.total{font-weight:600;color:var(--accent)}
+hr{border:0;border-top:1px solid var(--line);margin:0;grid-column:1/-1}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions a,.actions button{font:inherit;font-weight:600;font-size:15px;text-align:center;text-decoration:none;padding:12px;border-radius:10px;cursor:pointer}
+.line{background:#06c755;color:#fff;border:0}
+.copy{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+@media (prefers-reduced-motion:no-preference){.result .v{transition:opacity .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ตลอดชีพ · ชำระเบี้ย 20 ปี</div>
+    <h1>คำนวณเบี้ย AIA 20Pay Life (Non Par)</h1>
+    <p>คุ้มครองถึงอายุ 99 ปี · รับเงินคืน 100% ของทุนเมื่อครบสัญญา</p>
+  </header>
+
+  <section class="card" aria-label="ข้อมูลผู้เอาประกัน">
+    <div>
+      <span class="lbl" id="sexLbl">เพศ</span>
+      <div class="seg" role="group" aria-labelledby="sexLbl">
+        <button type="button" id="sexM" aria-pressed="true">ชาย</button>
+        <button type="button" id="sexF" aria-pressed="false">หญิง</button>
+      </div>
+    </div>
+
+    <div>
+      <label for="age">อายุ (ปี)</label>
+      <div class="row">
+        <button type="button" class="step" id="ageDn" aria-label="ลดอายุ">−</button>
+        <input type="number" id="age" inputmode="numeric" min="0" max="70" value="35">
+        <button type="button" class="step" id="ageUp" aria-label="เพิ่มอายุ">+</button>
+      </div>
+      <input type="range" id="ageR" min="0" max="70" value="35" aria-label="เลื่อนเลือกอายุ">
+      <div class="hint" id="ageHint">รับประกันอายุ 15 วัน – 70 ปี (ใส่ 0 = 15 วัน ถึงต่ำกว่า 1 ปี)</div>
+    </div>
+
+    <div>
+      <label for="sa">ทุนประกัน (บาท)</label>
+      <input type="text" id="sa" inputmode="numeric" value="1,000,000">
+      <div class="chips">
+        <button type="button" data-sa="100000">1 แสน</button>
+        <button type="button" data-sa="300000">3 แสน</button>
+        <button type="button" data-sa="500000">5 แสน</button>
+        <button type="button" data-sa="1000000">1 ล้าน</button>
+        <button type="button" data-sa="2000000">2 ล้าน</button>
+      </div>
+      <div class="err" id="saErr" hidden>ทุนประกันขั้นต่ำ 100,000 บาท</div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite">
+    <span class="k">เบี้ยประกันรายปี</span>
+    <span class="v" id="prem">22,300 <small>บาท</small></span>
+    <span class="sub" id="sum">ชาย อายุ 35 ปี · ทุน 1,000,000 บาท · ชำระ 20 ปี</span>
+  </section>
+
+  <section class="card" aria-label="วิธีคำนวณ">
+    <dl>
+      <dt>อัตราเบี้ยมาตรฐาน / ทุน 1,000</dt><dd id="rate">24.30</dd>
+      <dt>ส่วนลดตามทุน / ทุน 1,000</dt><dd id="disc">−2.00</dd>
+      <dt>อัตราสุทธิ / ทุน 1,000</dt><dd id="net">22.30</dd>
+      <hr>
+      <dt>เบี้ยรายปี (อัตราสุทธิ × ทุน ÷ 1,000)</dt><dd class="total" id="prem2">22,300</dd>
+      <dt>ทุนคุ้มครองชีวิต</dt><dd id="cov">1,000,000</dd>
+    </dl>
+    <div class="actions">
+      <a class="line" id="lineBtn" href="#" target="_blank" rel="noopener">แชร์ไป LINE</a>
+      <button type="button" class="copy" id="copyBtn">คัดลอกผล</button>
+    </div>
+    <div class="hint" id="copyMsg" hidden></div>
+  </section>
+
+  <p class="note">ส่วนลด: ทุน 250,000–599,999 บาท ลด 1 บาท, ตั้งแต่ 600,000 บาท ลด 2 บาท ต่อทุน 1,000 บาท · อัตราจากโบรชัวร์ SU0215429 (01/01/2023) เป็นเบี้ยมาตรฐาน ยังไม่รวมสัญญาเพิ่มเติม เบี้ยจริงขึ้นกับการพิจารณารับประกันของบริษัท · เว็บนี้เป็นเครื่องมือคำนวณอิสระ ไม่ใช่เว็บไซต์ของ AIA</p>
+</div>
+
+<script>
+// index = age 0..70 (0 = 15 days)
+const M=[12.76,12.81,12.98,13.15,13.33,13.53,13.73,13.95,14.18,14.42,14.68,14.96,15.23,15.52,15.80,16.09,16.38,16.67,16.97,17.27,17.58,17.90,18.23,18.57,18.93,19.31,19.70,20.12,20.56,21.02,21.50,22.01,22.55,23.11,23.69,24.30,24.94,25.61,26.31,27.04,27.80,28.60,29.44,30.32,31.24,32.20,33.22,34.28,35.40,36.57,37.81,39.13,40.51,41.99,43.56,45.25,47.05,48.99,51.08,53.33,55.77,58.42,61.29,64.19,66.96,69.89,71.99,73.80,75.13,76.40,78.11];
+const F=[11.47,11.47,11.51,11.58,11.68,11.80,11.94,12.10,12.27,12.45,12.66,12.87,13.09,13.32,13.56,13.76,13.97,14.19,14.41,14.65,14.90,15.15,15.43,15.71,16.00,16.31,16.64,16.98,17.34,17.72,18.11,18.53,18.96,19.42,19.90,20.40,20.93,21.48,22.06,22.67,23.30,23.96,24.66,25.39,26.15,26.95,27.79,28.68,29.61,30.59,31.62,32.72,33.88,35.11,36.41,37.81,39.29,40.89,42.60,44.44,46.43,48.59,50.93,53.49,56.27,59.32,61.90,63.61,64.71,66.13,67.07];
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString('th-TH',{maximumFractionDigits:2});
+const f2=n=>n.toFixed(2);
+let sex='M', text='';
+
+function discount(sa){return sa>=600000?2:sa>=250000?1:0}
+function premium(sex,age,sa){
+  const rate=(sex==='M'?M:F)[age], d=discount(sa), net=Math.round((rate-d)*100)/100;
+  return {rate,d,net,prem:Math.round(net*sa/1000*100)/100};
+}
+function ageText(a){return a===0?'15 วัน–ต่ำกว่า 1 ปี':`${a} ปี`}
+
+function calc(){
+  let age=parseInt($('age').value,10); if(isNaN(age))age=0;
+  age=Math.min(70,Math.max(0,age));
+  $('ageR').value=age;
+  const sa=parseInt($('sa').value.replace(/[^\d]/g,''),10)||0;
+  const bad=sa<100000; $('saErr').hidden=!bad;
+  if(bad){$('prem').innerHTML='– <small>บาท</small>';$('prem2').textContent='–';$('sum').textContent='ทุนประกันขั้นต่ำ 100,000 บาท';return}
+  const r=premium(sex,age,sa), sx=sex==='M'?'ชาย':'หญิง';
+  $('prem').innerHTML=`${fmt(r.prem)} <small>บาท</small>`;
+  $('sum').textContent=`${sx} อายุ ${ageText(age)} · ทุน ${fmt(sa)} บาท · ชำระ 20 ปี`;
+  $('rate').textContent=f2(r.rate); $('disc').textContent=r.d?`−${f2(r.d)}`:'0.00';
+  $('net').textContent=f2(r.net); $('prem2').textContent=fmt(r.prem); $('cov').textContent=fmt(sa);
+  text=`AIA 20Pay Life (Non Par)\n${sx} อายุ ${ageText(age)}\nทุนประกัน ${fmt(sa)} บาท\nเบี้ยรายปี ${fmt(r.prem)} บาท (ชำระ 20 ปี)\nคุ้มครองถึงอายุ 99 ปี`;
+  $('lineBtn').href='https://line.me/R/share?text='+encodeURIComponent(text);
+}
+function setSex(s){sex=s;$('sexM').setAttribute('aria-pressed',s==='M');$('sexF').setAttribute('aria-pressed',s==='F');calc()}
+$('sexM').onclick=()=>setSex('M'); $('sexF').onclick=()=>setSex('F');
+$('age').oninput=calc;
+$('age').onblur=()=>{let a=parseInt($('age').value,10);$('age').value=isNaN(a)?0:Math.min(70,Math.max(0,a));calc()};
+$('ageR').oninput=()=>{$('age').value=$('ageR').value;calc()};
+$('ageDn').onclick=()=>{$('age').value=Math.max(0,(+$('age').value||0)-1);calc()};
+$('ageUp').onclick=()=>{$('age').value=Math.min(70,(+$('age').value||0)+1);calc()};
+$('sa').oninput=()=>{const raw=$('sa').value.replace(/[^\d]/g,'');$('sa').value=raw?(+raw).toLocaleString('en-US'):'';calc()};
+document.querySelectorAll('[data-sa]').forEach(b=>b.onclick=()=>{$('sa').value=(+b.dataset.sa).toLocaleString('en-US');calc()});
+$('copyBtn').onclick=async()=>{
+  const m=$('copyMsg');
+  try{await navigator.clipboard.writeText(text);m.textContent='คัดลอกแล้ว'}
+  catch(e){m.textContent=text}
+  m.hidden=false;
+};
+calc();
+</script>
+</body>
+</html>
